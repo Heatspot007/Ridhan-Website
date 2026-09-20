@@ -42,7 +42,7 @@ It is a static site, so the first deploy takes well under a minute.
 
 In Vercel → Project → **Settings → Domains**, add your domain and follow the DNS
 instructions. Then do a find-and-replace across the repo for
-`REPLACE-WITH-YOUR-DOMAIN` — it appears in `index.html` (canonical, Open Graph,
+`https://ridhan-website.vercel.app` (update if you attach a custom domain) — it appears in `index.html` (canonical, Open Graph,
 JSON-LD), `robots.txt` and `sitemap.xml`.
 
 ---
@@ -50,7 +50,7 @@ JSON-LD), `robots.txt` and `sitemap.xml`.
 ## Before you go live
 
 **Replace the domain placeholder.** Five occurrences, listed above. Search the repo for
-`REPLACE-WITH-YOUR-DOMAIN`.
+`https://ridhan-website.vercel.app` (update if you attach a custom domain).
 
 **Add the website to the Google Business Profile.** The listing currently has no website
 link. Given that most patients arrive by word of mouth and then look the clinic up, that
