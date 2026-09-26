@@ -1,152 +1,88 @@
-# Live Google reviews for the Ridhan site
+# Google reviews — how the live feed works
 
-The prototype cannot do this, for two separate reasons — both of which disappear
-in the real Next.js build:
+The reviews section reads from `/api/reviews`, a Vercel serverless function in
+`api/reviews.js`. Until it is configured the page keeps the three reviews written
+into `index.html`, so the section is never empty or broken.
 
-1. **The artifact preview blocks all outbound requests.** Its CSP allows scripts from a
-   short CDN allowlist and nothing else. No `fetch` to Google, ever.
-2. **A Places API key must never live in browser code.** Anyone can open devtools, lift
-   it, and run up your bill. The key belongs on the server.
+## Setup (about five minutes)
 
-So the page ships with the rating and reviews as static markup, and these IDs already in
-place as hydration targets:
+1. **Get the place id.** Open the clinic's listing, or use the Place ID finder at
+   https://developers.google.com/maps/documentation/places/web-service/place-id
+   Search "Ridhan Skin Hair and Child Clinic, Old Pallavaram". It looks like
+   `ChIJ....`.
 
-| Element | ID |
-|---|---|
-| Average rating | `#gRating` |
-| Review count | `#gCount` |
-| Review cards container | `#gReviews` |
+2. **Create an API key.** Google Cloud console → APIs & Services → Credentials →
+   Create credentials → API key. Then enable **Places API (New)** for the project.
+   Restrict the key: *API restrictions* → Places API (New) only. An HTTP-referrer
+   restriction is **not** appropriate here — the key is used server-side, so leave
+   application restrictions as None, or use an IP restriction if you prefer.
 
----
+3. **Add the variables** in Vercel → Project → Settings → Environment Variables:
 
-## 1. Get the credentials
+   | Name | Value |
+   |---|---|
+   | `GOOGLE_MAPS_API_KEY` | the key from step 2 |
+   | `GOOGLE_PLACE_ID` | the place id from step 1 |
+   | `REVIEWS_MAX` | optional, default `10` |
 
-- **Place ID** — find it with Google's Place ID Finder, or from the listing URL. The
-  Ridhan listing's knowledge-graph id is `/g/11sv7dnh3v`; resolve it to a
-  `ChIJ…` Place ID via Text Search on the clinic name and address.
-- **API key** — Google Cloud console → enable **Places API (New)** → create a key →
-  restrict it to that API and to your server's IP. Put it in `.env.local`:
+   Never put the key in the repository. It only ever lives in Vercel.
+
+4. **Redeploy.** Visit `https://<your-site>/api/reviews` — you should see JSON with
+   `"ok": true` and a `reviews` array.
+
+## How "once a day" is enforced
+
+The function sends:
 
 ```
-GOOGLE_PLACES_API_KEY=xxxxxxxx
-GOOGLE_PLACE_ID=ChIJxxxxxxxxxxxx
+Cache-Control: public, s-maxage=86400, stale-while-revalidate=86400
 ```
 
-Never prefix it `NEXT_PUBLIC_` — that ships it to the browser.
+Vercel's edge CDN then serves one cached copy for 24 hours, so Google is called at
+most once a day no matter how many people visit. `stale-while-revalidate` means
+nobody waits for the refresh — the previous day's copy is served while the new one
+is fetched behind the scenes. Expect roughly 30 Places calls a month.
 
----
+## The five-review cap — read this before expecting ten
 
-## 2. The server route
+**The Google Places API returns a maximum of 5 reviews per place.** This is a hard
+limit on Google's side; no parameter, field mask or billing tier raises it. The
+function asks for ten and will return however many Google gives, so with Places
+configured the ring will hold **five cards, not ten**.
 
-`app/api/reviews/route.ts`
+The carousel handles any number — it will show five in the ring and three in the
+spotlight, and will pick up ten automatically the day a richer source is connected.
 
-```ts
-import { NextResponse } from "next/server";
+Two ways to actually reach ten or more:
 
-// Cache for an hour. Places bills per call and reviews barely move.
-export const revalidate = 3600;
+**a) Google Business Profile API** — the official route, and free. Because the clinic
+owns the listing, `accounts.locations.reviews.list` returns every review, 50 per
+page. It needs a separate access request to Google with a stated business purpose,
+and approval has historically taken two to four weeks. It also uses OAuth as the
+business owner rather than a simple API key.
 
-type Review = { author: string; rating: number; text: string; relative: string };
+**b) A paid aggregator** — services such as Outscraper or SerpApi resell full review
+sets. Faster to set up, costs a monthly fee, and you depend on them keeping their
+integration working.
 
-export async function GET() {
-  const key = process.env.GOOGLE_PLACES_API_KEY;
-  const id = process.env.GOOGLE_PLACE_ID;
-  if (!key || !id) {
-    return NextResponse.json({ error: "missing credentials" }, { status: 500 });
-  }
+Either way, point `REVIEWS_FEED_URL` at a JSON endpoint and the function prefers it
+over Places automatically. It accepts either a bare array or
+`{ rating, userRatingCount, reviews: [...] }`, and each review may use
+`authorName`/`author_name`/`authorAttribution.displayName` for the name and
+`text`/`text.text`/`comment` for the body — `normalise()` in `api/reviews.js` covers
+those shapes. No front-end change is needed.
 
-  const res = await fetch(`https://places.googleapis.com/v1/places/${id}`, {
-    headers: {
-      "X-Goog-Api-Key": key,
-      "X-Goog-FieldMask": "rating,userRatingCount,reviews",
-    },
-    next: { revalidate },
-  });
+**Do not scrape Google Maps directly.** It breaks Google's terms of service and the
+clinic's listing is the thing at risk.
 
-  if (!res.ok) {
-    return NextResponse.json({ error: "places request failed" }, { status: 502 });
-  }
+## Ordering
 
-  const data = await res.json();
+`rank()` sorts by rating, then recency, then length — so the strongest and most
+recent reviews land in the three spotlight positions. Change that function if the
+clinic wants a different order.
 
-  const reviews: Review[] = (data.reviews ?? [])
-    .filter((r: any) => r.rating >= 4 && r.originalText?.text)
-    .slice(0, 3)
-    .map((r: any) => ({
-      author: r.authorAttribution?.displayName ?? "Google reviewer",
-      rating: r.rating,
-      text: r.originalText.text,
-      relative: r.relativePublishTimeDescription ?? "",
-    }));
+## If something goes wrong
 
-  return NextResponse.json({
-    rating: data.rating ?? null,
-    count: data.userRatingCount ?? 0,
-    reviews,
-  });
-}
-```
-
-**Note on the field mask.** Places API (New) bills by the fields you request. Asking only
-for `rating,userRatingCount,reviews` keeps you on the cheapest SKU. Requesting everything
-is the usual way people get a surprise invoice.
-
-**Note on review count.** Places returns at most **five** reviews and you cannot choose
-which. That is a Google limitation, not a bug in this code. If you want every review, you
-need a third-party aggregator.
-
----
-
-## 3. Hydrating the markup
-
-`components/Reviews.tsx` — server component, so nothing extra reaches the client:
-
-```tsx
-export default async function Reviews() {
-  const res = await fetch(`${process.env.SITE_URL}/api/reviews`, {
-    next: { revalidate: 3600 },
-  });
-  const { rating, count, reviews } = await res.json();
-
-  return (
-    <>
-      <div className="rev-top">
-        <span className="rev-score" id="gRating">{rating?.toFixed(1) ?? "—"}</span>
-        <div>
-          <span className="stars" aria-hidden="true">★★★★★</span>
-          <p className="rev-meta">
-            Across <span id="gCount">{count}</span> Google reviews
-          </p>
-        </div>
-      </div>
-
-      <div className="rev-grid" id="gReviews">
-        {reviews.map((r) => (
-          <div className="rev" key={r.author + r.relative}>
-            <span className="stars" aria-hidden="true">
-              {"★".repeat(r.rating)}
-            </span>
-            <p className="body">{r.text}</p>
-            <span className="who">{r.author} · Google</span>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-```
-
-The CSS classes are identical to the ones already in the prototype, so the section keeps
-its exact appearance.
-
----
-
-## 4. Two things to get right before launch
-
-**Fall back, don't fail.** If Places is down or the quota is spent, render the last known
-good values rather than an empty section. Keep a small JSON snapshot in the repo, updated
-on each successful fetch, and render that when the API errors.
-
-**Attribution is required.** Google's terms require reviews shown via Places to carry
-attribution to Google and to link to the listing. The "· Google" suffix on each reviewer
-and a link to the Google profile satisfies this.
+The function never returns an error status. It answers `200` with `ok: false` and a
+`reason` (`not_configured` or `upstream_error`) plus a short `detail`, and the page
+silently keeps its built-in reviews. Check `/api/reviews` in a browser to see which.

@@ -49,42 +49,90 @@ var IMG = {"corns": "/assets/img/th_corns.jpg", "gfc": "/assets/img/th_gfc.jpg",
   var mini = document.getElementById('mini');
   var mImg = mini.querySelector('img'), mNone = mini.querySelector('.none');
   var mH = mini.querySelector('h5'), mP = mini.querySelector('p'), mTag = mini.querySelector('.tag');
-  var active = null;
-  function show(btn){
-    active = btn;
+  var active = null, hideTimer = null;
+
+  /* Decoded-image cache. Swapping src on a cold image flashes the previous
+     frame, which read as the card "stuttering" on first hover. */
+  var warmed = Object.create(null);
+  function warm(src){
+    if (!src || warmed[src]) return warmed[src];
+    var im = new Image(); im.src = src;
+    warmed[src] = im.decode ? im.decode().catch(function(){}) : Promise.resolve();
+    return warmed[src];
+  }
+  Object.keys(IMG).forEach(function(k){ warm(IMG[k]); });
+
+  function place(btn){
+    var r = btn.getBoundingClientRect(), W = 336, H = mini.offsetHeight || 340;
+    var x = r.right + 16;
+    if (x + W > innerWidth - 12) x = Math.max(12, r.left - W - 16);
+    var y = Math.min(Math.max(86, r.top + r.height / 2 - H / 2), innerHeight - H - 12);
+    /* positioned through custom properties folded into one transform, so moving
+       between labels glides on the compositor instead of jumping via left/top */
+    mini.style.setProperty('--mx', Math.round(x) + 'px');
+    mini.style.setProperty('--my', Math.round(y) + 'px');
+  }
+
+  function fill(btn){
     var key = btn.dataset.img, src = key && IMG[key];
     mH.textContent = btn.textContent.trim();
     mP.textContent = btn.dataset.d || '';
     if (src){
-      mImg.src = src; mImg.hidden = false; mNone.hidden = true;
       var isIllus = ILLUS.has(key);
       mini.classList.toggle('illus', isIllus);
       mTag.className = 'tag' + (isIllus ? ' soft' : '');
       mTag.textContent = isIllus ? 'Indicative illustration' : 'Treated at Ridhan';
+      mNone.hidden = true; mImg.hidden = false;
+      if (mImg.getAttribute('src') !== src){
+        Promise.resolve(warm(src)).then(function(){ mImg.src = src; });
+      }
+    } else {
+      mImg.hidden = true; mImg.removeAttribute('src'); mNone.hidden = false;
+      mini.classList.remove('illus'); mTag.textContent = '';
     }
-    else { mImg.hidden = true; mImg.removeAttribute('src'); mNone.hidden = false;
-      mini.classList.remove('illus'); mTag.textContent = ''; }
-    var r = btn.getBoundingClientRect(), W = 336, H = mini.offsetHeight || 340;
-    var x = r.right + 16;
-    if (x + W > innerWidth - 12) x = Math.max(12, r.left - W - 16);
-    var y = Math.min(Math.max(86, r.top + r.height/2 - H/2), innerHeight - H - 12);
-    mini.style.left = x + 'px'; mini.style.top = y + 'px';
-    mini.classList.add('on'); mini.setAttribute('aria-hidden','false');
+  }
+
+  function show(btn){
+    clearTimeout(hideTimer);
+    var wasOn = mini.classList.contains('on');
+    if (active && active !== btn) active.setAttribute('aria-expanded','false');
+    active = btn;
+    fill(btn);
+    place(btn);
+    if (wasOn){
+      /* already open: replay the content entrance rather than the whole card's */
+      mini.classList.remove('swap');
+      void mini.offsetWidth;
+      mini.classList.add('swap');
+    } else {
+      mini.classList.remove('swap');
+    }
+    mini.classList.add('on');
+    mini.setAttribute('aria-hidden','false');
     btn.setAttribute('aria-expanded','true');
   }
+
   function hide(){
-    mini.classList.remove('on'); mini.setAttribute('aria-hidden','true');
+    mini.classList.remove('on','swap');
+    mini.setAttribute('aria-hidden','true');
     if (active) active.setAttribute('aria-expanded','false');
     active = null;
   }
+  /* a short grace period so sliding from one label to the next never closes
+     and reopens the card -- that round trip was the janky part */
+  function hideSoon(){ clearTimeout(hideTimer); hideTimer = setTimeout(hide, 180); }
+
   items.forEach(function(b){
     b.setAttribute('aria-expanded','false');
     b.addEventListener('mouseenter', function(){ show(b); });
     b.addEventListener('focus', function(){ show(b); });
-    b.addEventListener('mouseleave', hide);
-    b.addEventListener('blur', hide);
+    b.addEventListener('mouseleave', hideSoon);
+    b.addEventListener('blur', hideSoon);
     b.addEventListener('click', function(e){ e.preventDefault(); active===b ? hide() : show(b); });
   });
+  mini.addEventListener('mouseenter', function(){ clearTimeout(hideTimer); });
+  mini.addEventListener('mouseleave', hideSoon);
+  addEventListener('scroll', function(){ if (active) place(active); }, { passive:true });
   addEventListener('keydown', function(e){ if (e.key === 'Escape') hide(); });
 
   /* ---------- appointment form: calendar, WhatsApp handoff ---------- */
@@ -223,6 +271,16 @@ var IMG = {"corns": "/assets/img/th_corns.jpg", "gfc": "/assets/img/th_gfc.jpg",
       if (note) lines.push('', 'Concern: ' + note);
       send.href = 'https://wa.me/' + NUM + '?text=' + encodeURIComponent(lines.join('\n'));
     }
+    /* A disabled button that does nothing when clicked tells the visitor nothing.
+       Clicking it counts as touching the form, so the reason appears. */
+    send.addEventListener('click', function(e){
+      if (send.getAttribute('aria-disabled') === 'true'){
+        e.preventDefault();
+        touched = true; refresh();
+        var first = document.getElementById('f-name');
+        if (first && !first.value.trim()) first.focus({ preventScroll:true });
+      }
+    });
     form.addEventListener('input', function(){ touched = true; refresh(); });
     form.addEventListener('change', function(){ touched = true; refresh(); });
     form.addEventListener('submit', function(e){ e.preventDefault(); });
@@ -283,6 +341,7 @@ var IMG = {"corns": "/assets/img/th_corns.jpg", "gfc": "/assets/img/th_gfc.jpg",
   if (typeof Lenis !== 'undefined'){
     var l = new Lenis({duration:1.15, smoothWheel:true,
       easing:function(t){return Math.min(1,1.001-Math.pow(2,-10*t));}});
+    window.__lenis = l;
     l.on('scroll', ScrollTrigger.update);
     gsap.ticker.add(function(t){ l.raf(t*1000); });
     gsap.ticker.lagSmoothing(0);
@@ -317,9 +376,9 @@ var IMG = {"corns": "/assets/img/th_corns.jpg", "gfc": "/assets/img/th_gfc.jpg",
       if(c.nodeType===3){ var fr=document.createDocumentFragment();
         c.textContent.split(/(\s+)/).forEach(function(w){
           if(!w) return;
+          if(!w.trim()){ fr.appendChild(document.createTextNode(w)); return; }
           var s=document.createElement('span');
-          if(!w.trim()){ s.className='sp'; } else { s.className='word'; }
-          s.textContent=w; fr.appendChild(s);});
+          s.className='word'; s.textContent=w; fr.appendChild(s);});
         node.replaceChild(fr,c);
       } else if(c.nodeType===1){ wrap(c); } }); })(tmp);
     el.innerHTML=tmp.innerHTML;
@@ -341,4 +400,386 @@ var IMG = {"corns": "/assets/img/th_corns.jpg", "gfc": "/assets/img/th_gfc.jpg",
   /* gallery cards sit on a strict grid — no per-card offset */
   ScrollTrigger.refresh();
 })();
+})();
+
+/* ===== hair case gallery ===== */
+(function(){
+  var CASES = [
+    { t:'Alopecia areata',
+      d:'A defined patch of loss at the crown, treated medically over a course of review visits.',
+      tag:'Before and after',
+      imgs:[{src:'/assets/img/hair1_b.jpg',cap:'Alopecia areata \u2014 before'},
+            {src:'/assets/img/hair1_a.jpg',cap:'Alopecia areata \u2014 after'}] },
+    { t:'Pattern hair loss, crown',
+      d:'Thinning across the vertex. Pattern, thyroid, iron and nutrition are checked before treatment is chosen.',
+      tag:'Before and after',
+      imgs:[{src:'/assets/img/hair2_b.jpg',cap:'Pattern hair loss \u2014 before'},
+            {src:'/assets/img/hair2_a.jpg',cap:'Pattern hair loss \u2014 after'}] },
+    { t:'Diffuse thinning',
+      d:'Widened parting and visible scalp through the mid-scalp, followed up over a treatment course.',
+      tag:'Before and after',
+      imgs:[{src:'/assets/img/hair3_b.jpg',cap:'Diffuse thinning \u2014 before'},
+            {src:'/assets/img/hair3_a.jpg',cap:'Diffuse thinning \u2014 after'}] },
+    { t:'Advanced vertex thinning',
+      d:'Photographed after the third GFC session with exosome therapy \u2014 growth factor concentrate prepared from the patient\u2019s own blood.',
+      tag:'Before and after',
+      imgs:[{src:'/assets/img/hair4_b.jpg',cap:'Vertex thinning \u2014 before'},
+            {src:'/assets/img/hair4_a.jpg',cap:'After 3rd GFC \u2014 with exosome therapy'}] }
+  ];
+
+  var gal = document.getElementById('hairgal');
+  if(!gal) return;
+  var track = gal.querySelector('.hg-track'),
+      dots  = gal.querySelector('.hg-dots'),
+      count = gal.querySelector('.hg-count'),
+      prev  = gal.querySelector('.hg-nav.prev'),
+      next  = gal.querySelector('.hg-nav.next'),
+      opener = null, idx = 0, built = false;
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function build(){
+    if(built) return; built = true;
+    track.innerHTML = CASES.map(function(c,i){
+      var pair = c.imgs.map(function(im){
+        return '<figure><span class="imgbox"><img src="'+im.src+'" alt="'+esc(im.cap)+'" loading="lazy"></span>'+
+               '<figcaption>'+esc(im.cap)+'</figcaption></figure>'; }).join('');
+      return '<div class="hg-slide" role="group" aria-roledescription="slide" '+
+             'aria-label="Case '+(i+1)+' of '+CASES.length+'">'+
+             '<div class="hg-pair'+(c.imgs.length===1?' single':'')+'">'+pair+'</div>'+
+             '<div class="hg-meta"><h5>'+esc(c.t)+'</h5><p>'+esc(c.d)+'</p>'+
+             '<span class="hg-tag">'+esc(c.tag)+'</span></div></div>'; }).join('');
+    dots.innerHTML = CASES.map(function(c,i){
+      return '<button type="button" role="tab" aria-selected="'+(i===0)+'" '+
+             'aria-label="'+esc(c.t)+'"></button>'; }).join('');
+    dots.addEventListener('click', function(e){
+      var b = e.target.closest('button'); if(!b) return;
+      go([].indexOf.call(dots.children, b));
+    });
+    track.addEventListener('scroll', function(){
+      var i = Math.round(track.scrollLeft / track.clientWidth);
+      if(i !== idx){ idx = i; sync(); }
+    }, { passive:true });
+  }
+
+  function sync(){
+    count.textContent = 'Case ' + (idx+1) + ' of ' + CASES.length;
+    [].forEach.call(dots.children, function(b,i){ b.setAttribute('aria-selected', i===idx); });
+    prev.disabled = idx === 0;
+    next.disabled = idx === CASES.length - 1;
+  }
+
+  function go(i){
+    idx = Math.max(0, Math.min(CASES.length-1, i));
+    track.scrollTo({ left: idx * track.clientWidth, behavior:'smooth' });
+    sync();
+  }
+
+  function open(btn){
+    build(); opener = btn;
+    gal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    if(window.__lenis && window.__lenis.stop) window.__lenis.stop();
+    idx = 0; track.scrollLeft = 0; sync();
+    gal.querySelector('.hg-box').focus({preventScroll:true});
+  }
+
+  function close(){
+    gal.hidden = true;
+    document.body.style.overflow = '';
+    if(window.__lenis && window.__lenis.start) window.__lenis.start();
+    if(opener) opener.focus();
+  }
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-gallery="hair"]');
+    if(b){ e.preventDefault(); e.stopPropagation(); open(b); return; }
+    if(e.target.closest('#hairgal [data-close]')) close();
+  });
+  prev.addEventListener('click', function(){ go(idx-1); });
+  next.addEventListener('click', function(){ go(idx+1); });
+  document.addEventListener('keydown', function(e){
+    if(gal.hidden) return;
+    if(e.key === 'Escape') close();
+    else if(e.key === 'ArrowRight') go(idx+1);
+    else if(e.key === 'ArrowLeft') go(idx-1);
+  });
+})();
+
+/* ===== review ring =====
+   The three middle cards are the spotlight; the rest sit behind on the same
+   circle. One transform per card, so a move is a single compositor animation.
+   Reviews come from /api/reviews (refreshed daily server-side); if that is not
+   configured yet or fails, the cards already in the HTML are kept. */
+(function(){
+  var stage = document.getElementById('ringStage');
+  if (!stage) return;
+  var ring  = document.getElementById('revRing'),
+      prev  = document.getElementById('ringPrev'),
+      next  = document.getElementById('ringNext'),
+      dots  = document.getElementById('ringDots'),
+      live  = document.getElementById('ringLive'),
+      rating= document.getElementById('gRating'),
+      count = document.getElementById('gCount');
+
+  var cards = [], index = 0, timer = null, held = false;
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  var STARS = '★★★★★';
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  /* How many cards sit in the spotlight: three on a wide screen, one on a phone
+     where three would be unreadable. */
+  function spotlight(){ return innerWidth <= 860 ? 0 : 1; }
+
+  function layout(){
+    var n = cards.length; if (!n) return;
+    var spot = spotlight();
+    var cw = parseFloat(getComputedStyle(stage).getPropertyValue('--ring-cw')) || 332;
+    var gap = cw + (innerWidth <= 860 ? 14 : 22);
+    cards.forEach(function(el, i){
+      var o = i - index;
+      if (o >  n/2) o -= n;          // always travel the short way round
+      if (o < -n/2) o += n;
+      var a = Math.abs(o), dir = o < 0 ? -1 : 1;
+      var inSpot = a <= spot;
+      // beyond the spotlight the cards bunch together instead of marching off screen
+      var x = inSpot ? o * gap
+                     : dir * (spot * gap + (a - spot) * gap * 0.30);
+      var z = -a * 120;
+      var rot = Math.max(-40, Math.min(40, -o * 16));
+      var sc = Math.max(0.60, 1 - a * 0.085);
+      var op = inSpot ? 1 : Math.max(0.10, 0.62 - (a - spot) * 0.18);
+      el.style.transform = 'translate3d(' + Math.round(x) + 'px,0,' + Math.round(z) + 'px)' +
+                           ' rotateY(' + rot.toFixed(1) + 'deg) scale(' + sc.toFixed(3) + ')';
+      el.style.opacity = op.toFixed(3);
+      el.style.filter = inSpot ? 'none' : 'blur(' + Math.min(3.2, (a - spot) * 1.15).toFixed(2) + 'px)';
+      el.style.zIndex = String(120 - Math.round(a * 10));
+      el.classList.toggle('spot', inSpot);
+      el.classList.toggle('lead', o === 0);
+      el.setAttribute('aria-hidden', inSpot ? 'false' : 'true');
+    });
+    [].forEach.call(dots.children, function(b,i){ b.setAttribute('aria-selected', i === index); });
+    if (live) live.textContent = 'Review ' + (index + 1) + ' of ' + n;
+  }
+
+  function go(i){
+    var n = cards.length; if (!n) return;
+    index = ((i % n) + n) % n;       // wrap both ways
+    layout();
+  }
+  function step(d){ go(index + d); restart(); }
+
+  function buildDots(){
+    dots.innerHTML = cards.map(function(_,i){
+      return '<button type="button" role="tab" aria-selected="' + (i===0) +
+             '" aria-label="Review ' + (i+1) + '"></button>'; }).join('');
+  }
+
+  function cardHTML(r){
+    // Only draw stars when the source actually supplied a per-review rating.
+    // Defaulting to five would invent a rating the page cannot stand behind.
+    var n = Number(r.rating);
+    var stars = (n >= 1 && n <= 5)
+      ? '<span class="stars" aria-hidden="true">' + STARS.slice(0, Math.round(n)) + '</span>'
+      : '';
+    var when = r.whenText ? ' · ' + esc(r.whenText) : '';
+    return stars + '<p class="body">' + esc(r.body) + '</p>' +
+           '<span class="who">' + esc(r.author) + ' · Google' + when + '</span>';
+  }
+
+  function collect(){
+    cards = [].slice.call(stage.querySelectorAll('.rev'));
+    cards.forEach(function(el,i){
+      el.setAttribute('role','group');
+      el.setAttribute('aria-roledescription','review');
+      el.setAttribute('aria-label','Review ' + (i+1) + ' of ' + cards.length);
+    });
+    ring.classList.remove('no-ring');   // JS is running; the ring takes over
+    buildDots(); go(0);
+  }
+
+  /* "2 months ago" from an ISO timestamp, to match how the listing reads */
+  function ago(iso){
+    var t = Date.parse(iso || ''); if (!t) return '';
+    var d = Math.floor((Date.now() - t) / 86400000);
+    if (d < 1)  return 'today';
+    if (d < 14) return d + (d === 1 ? ' day ago' : ' days ago');
+    if (d < 60) { var w = Math.round(d/7);  return w + (w === 1 ? ' week ago'  : ' weeks ago'); }
+    if (d < 365){ var m = Math.round(d/30); return m + (m === 1 ? ' month ago' : ' months ago'); }
+    var y = Math.round(d/365); return y + (y === 1 ? ' year ago' : ' years ago');
+  }
+
+  function render(list){
+    stage.innerHTML = list.map(function(r){
+      r.whenText = r.whenText || ago(r.when);
+      return '<article class="rev">' + cardHTML(r) + '</article>'; }).join('');
+    collect();
+  }
+
+  /* autoplay: slow, and never while someone is reading or the tab is hidden */
+  function restart(){
+    clearInterval(timer);
+    if (reduce.matches || held || cards.length < 2) return;
+    timer = setInterval(function(){ if (!document.hidden) go(index + 1); }, 7000);
+  }
+  function hold(v){ held = v; restart(); }
+
+  prev.addEventListener('click', function(){ step(-1); });
+  next.addEventListener('click', function(){ step(1); });
+  dots.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    go([].indexOf.call(dots.children, b)); restart();
+  });
+  stage.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight'){ e.preventDefault(); step(1); }
+    else if (e.key === 'ArrowLeft'){ e.preventDefault(); step(-1); }
+  });
+  ring.addEventListener('mouseenter', function(){ hold(true); });
+  ring.addEventListener('mouseleave', function(){ hold(false); });
+  ring.addEventListener('focusin',  function(){ hold(true); });
+  ring.addEventListener('focusout', function(){ hold(false); });
+
+  /* drag / swipe */
+  var down = null;
+  stage.addEventListener('pointerdown', function(e){ down = e.clientX; hold(true); });
+  addEventListener('pointerup', function(e){
+    if (down === null) return;
+    var dx = e.clientX - down; down = null;
+    if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
+    hold(false);
+  });
+
+  addEventListener('resize', layout);
+  reduce.addEventListener('change', restart);
+
+  collect();
+  restart();
+
+  /* Swap in the live set once it arrives. Anything short of a usable payload
+     leaves the built-in cards exactly as they are. */
+  fetch('/api/reviews', { headers:{ accept:'application/json' } })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      // Places caps at 5. The page already ships with ten real reviews, so only
+      // take the live set when it is at least as large -- otherwise configuring
+      // the API would silently cut the section from ten cards down to five.
+      if (!d || !d.ok || !d.reviews || d.reviews.length < Math.max(3, cards.length)) return;
+      render(d.reviews);
+      if (rating && typeof d.rating === 'number') rating.textContent = d.rating.toFixed(1);
+      if (count  && typeof d.total  === 'number') count.textContent  = String(d.total);
+      // the snapshot date in the copy is only true until the live feed answers
+      var when = document.getElementById('revWhen');
+      if (when && d.fetchedAt){
+        var dt = new Date(d.fetchedAt);
+        if (!isNaN(dt)) when.textContent = 'Updated ' + dt.toLocaleDateString('en-GB',
+          { day:'numeric', month:'long', year:'numeric' }) + '.';
+      }
+      restart();
+    })
+    .catch(function(){ /* keep the built-in cards */ });
+})();
+
+/* ===== phone number: dial on touch, copy/view on desktop =====
+   `tel:` is a no-op on most desktop browsers, so every "Call the clinic" button
+   appeared dead there. Touch devices keep the native link — that is what opens
+   the dialer with the number already filled in. Desktops get a small panel with
+   the number, a copy button and a WhatsApp alternative. */
+(function(){
+  var pop = document.getElementById('callpop');
+  if (!pop) return;
+  var links = [].slice.call(document.querySelectorAll('a[href^="tel:"]'));
+  if (!links.length) return;
+
+  var copyBtn = pop.querySelector('.cp-copy'),
+      closeBtn = pop.querySelector('.cp-x'),
+      numLink = pop.querySelector('.cp-num a');
+  var NUMBER = (numLink.textContent || '').trim();
+  var opener = null, doneTimer = null;
+
+  /* A real pointer with hover is a desktop. Width would misjudge a small window
+     on a laptop, and a touch laptop should still be able to dial. */
+  function isDesktop(){
+    return matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
+
+  function place(el){
+    var r = el.getBoundingClientRect();
+    var w = pop.offsetWidth || 252, h = pop.offsetHeight || 150;
+    var x = Math.round(r.left + r.width / 2 - w / 2);
+    x = Math.max(12, Math.min(x, innerWidth - w - 12));
+    var below = r.bottom + 10;
+    var y = (below + h > innerHeight - 12) ? Math.max(12, r.top - h - 10) : below;
+    pop.style.left = x + 'px';
+    pop.style.top = Math.round(y) + 'px';
+  }
+
+  function open(el){
+    opener = el;
+    pop.hidden = false;
+    place(el);                    // measure once visible, before the transition
+    void pop.offsetWidth;
+    pop.classList.add('on');
+    el.setAttribute('aria-expanded', 'true');
+    closeBtn.focus({ preventScroll: true });
+  }
+
+  function close(){
+    if (pop.hidden) return;
+    pop.classList.remove('on');
+    if (opener){ opener.setAttribute('aria-expanded', 'false'); }
+    var was = opener; opener = null;
+    setTimeout(function(){ if (!pop.classList.contains('on')) pop.hidden = true; }, 280);
+    if (was) try { was.focus({ preventScroll: true }); } catch (e) {}
+  }
+
+  links.forEach(function(a){
+    a.setAttribute('aria-expanded', 'false');
+    a.addEventListener('click', function(e){
+      if (!isDesktop()) return;   // phones and tablets dial natively
+      e.preventDefault();
+      if (opener === a) { close(); return; }
+      open(a);
+    });
+  });
+
+  copyBtn.addEventListener('click', function(){
+    function done(){
+      copyBtn.classList.add('done');
+      copyBtn.textContent = 'Copied';
+      clearTimeout(doneTimer);
+      doneTimer = setTimeout(function(){
+        copyBtn.classList.remove('done');
+        copyBtn.textContent = 'Copy number';
+      }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(NUMBER).then(done, fallback);
+    } else fallback();
+
+    function fallback(){
+      /* older browsers, and any context where the async clipboard is blocked */
+      var ta = document.createElement('textarea');
+      ta.value = NUMBER;
+      ta.setAttribute('readonly','');
+      ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); }
+      catch (err){ copyBtn.textContent = 'Select and copy'; }
+      document.body.removeChild(ta);
+    }
+  });
+
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('click', function(e){
+    if (pop.hidden || !opener) return;
+    if (pop.contains(e.target) || e.target.closest('a[href^="tel:"]')) return;
+    close();
+  });
+  addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+  addEventListener('resize', function(){ if (opener) place(opener); });
+  addEventListener('scroll', function(){ if (opener) place(opener); }, { passive:true });
 })();

@@ -60,7 +60,9 @@
   "employee": [
     { "@type": "Physician", "name": "Dr. G. Aravindan",
       "medicalSpecialty": "Dermatology",
-      "alumniOf": "Madras Medical College",
+      "alumniOf": ["Thanjavur Medical College", "Madras Medical College"],
+      "knowsAbout": ["Hair loss", "Alopecia areata", "Pattern hair loss", "PRP therapy",
+        "GFC therapy", "Psoriasis", "Vitiligo", "Acne", "Dermatophytosis"],
       "jobTitle": "Consultant Dermatologist" },
     { "@type": "Physician", "name": "Dr. Kiruuthika KA",
       "medicalSpecialty": "Pediatric",
@@ -75,8 +77,9 @@
 <div id="prog"></div>
 
 <nav id="nav"><div class="wrap nav-in">
-  <a class="mark" href="#top"><img src="/assets/img/logo.png" alt="Ridhan Skin, Hair &amp; Child Clinic">
-    <span><b>Ridhan</b><i>Skin · Hair · Child</i></span></a>
+  <a class="mark" href="#top"><span class="badge"><img src="/assets/img/logo.png"
+      alt="Ridhan Skin, Hair &amp; Child Clinic"></span>
+    <span class="wordmark"><b>Ridhan</b><i>Skin · Hair · Child</i></span></a>
   <div class="nav-links">
     <a href="#doctors">Doctors</a><a href="#services">Treatments</a><a href="#results">Results</a>
     <a href="#approach">Approach</a><a href="#journey">Your visit</a><a href="#find">Visit us</a>
@@ -92,20 +95,19 @@
   <div class="scrim"></div>
   <div class="wrap hero-in">
     <div class="hero-copy">
-      <p class="lbl rv" data-rv><span>Dermatology &amp; Paediatrics — one clinic</span></p>
+      <p class="lbl rv" data-rv><span>Dermatology &amp; Paediatrics — under one roof</span></p>
       <h1 style="margin-top:22px">
         <span class="rv" data-rv><span>Care that</span></span>
         <span class="rv" data-rv><span><em>grows</em> with you.</span></span>
       </h1>
-      <p class="hero-lede rv" data-rv><span>Skin and hair for adults and teenagers. Children's health
-        from the newborn period onward. Two consultants, one clinic, and the time to explain what is
-        actually going on.</span></p>
+      <p class="hero-lede rv" data-rv><span>Skin and hair care for <b class="allages">all ages</b> — newborn to elderly.
+        Children's health from the newborn period onward.</span></p>
       <div class="hero-cta rv" data-rv><span style="display:flex;gap:12px;flex-wrap:wrap">
         <a class="pill gold" href="#find"><span>Book an appointment</span></a>
         <a class="pill" href="#services"><span>What we treat</span></a></span></div>
       <p class="hero-credit rv" data-rv><span>The consulting room · Ridhan clinic, Old Pallavaram</span></p>
       <p class="rating-line rv" data-rv><span><b>4.9</b><span class="stars" aria-hidden="true">★★★★★</span>
-        <a href="#reviews">77 Google reviews</a></span></p>
+        <a href="#reviews">87 Google reviews</a></span></p>
     </div>
   </div>
 </section>
@@ -137,16 +139,19 @@
         <h3>Dr. G. Aravindan</h3>
         <p class="q">MBBS, MD (DVL)</p>
         <p class="r">Consultant Dermatologist</p>
-        <p class="train">Trained at Madras Medical College</p>
-        <p class="s">One consultant for the full range of skin disease — psoriasis, vitiligo, acne,
-          fungal infection, urticaria, autoimmune conditions and venereal disease — alongside facial
-          reconstruction and minor skin surgery carried out at the clinic.</p>
+        <dl class="train">
+          <dt>MBBS</dt><dd>Thanjavur Medical College</dd>
+          <dt>MD</dt><dd>Madras Medical College</dd>
+        </dl>
+        <p class="s">One consultant for the full range of skin disease, alongside facial
+          reconstruction and minor skin surgery carried out at the clinic. Hair is a substantial
+          part of the practice: hair fall, alopecia areata and pattern hair loss, treated medically
+          or with PRP and GFC.</p>
         <p class="s">His practice is evidence-based. The treatment follows the diagnosis, and the
           reasoning behind it is explained to you before anything begins.</p>
-        <ul class="chips"><li>Psoriasis</li><li>Vitiligo</li><li>Acne &amp; scarring</li>
+        <ul class="chips"><li class="hi">Hair fall &amp; alopecia</li><li>Psoriasis</li><li>Vitiligo</li><li>Acne &amp; scarring</li>
           <li>Dermatophytosis</li><li>Autoimmune skin disease</li><li>Urticaria</li>
-          <li>Venereal disease</li><li>Facial reconstruction</li><li>Hair loss</li>
-          <li>Minor surgery</li></ul>
+          <li>Venereal disease</li><li>Facial reconstruction</li></ul>
       </div>
     </article>
     <article>
@@ -155,8 +160,11 @@
         <h3>Dr. Kiruuthika KA</h3>
         <p class="q">MBBS · DCH · DNB (Paediatrics)</p>
         <p class="r">Consultant Paediatrician</p>
-        <p class="train">MBBS, Kilpauk Medical College · DCH, Thanjavur Medical College ·
-          DNB, Dr. Mehta's Hospital</p>
+        <dl class="train">
+          <dt>MBBS</dt><dd>Kilpauk Medical College</dd>
+          <dt>DCH</dt><dd>Thanjavur Medical College</dd>
+          <dt>DNB</dt><dd>Dr. Mehta's Hospital</dd>
+        </dl>
         <p class="s">She looks for the cause rather than treating the symptom in front of her — which
           is why parents tend to leave understanding what was actually wrong.</p>
         <p class="s">Her particular interest is developmental paediatrics: how a child is growing,
@@ -196,9 +204,9 @@
     <div class="svc-block" data-mask-soft>
       <div class="top"><h3>Hair</h3><span class="who">Dr. Aravindan</span></div>
       <ul class="svc-list">
-        <li><button class="tx" data-img="hairfall" data-d="Thinning or shedding from the scalp. Assessment covers pattern, thyroid, iron and nutrition before any treatment is chosen.">Hair fall treatment</button></li>
-        <li><button class="tx" data-img="prp" data-d="Platelet-rich plasma. A small sample of your own blood is concentrated and injected into the scalp across a course of sessions.">PRP therapy</button></li>
         <li><button class="tx" data-img="gfc" data-d="Growth factor concentrate — a refinement of PRP using a more concentrated growth-factor fraction from your own blood.">GFC therapy</button></li>
+        <li><button class="tx" data-img="prp" data-d="Platelet-rich plasma. A small sample of your own blood is concentrated and injected into the scalp across a course of sessions.">PRP therapy</button></li>
+        <li><button class="tx" data-img="hairfall" data-d="Thinning or shedding from the scalp. Assessment covers pattern, thyroid, iron and nutrition before any treatment is chosen.">Hair fall treatment</button></li>
       </ul>
     </div>
     <div class="svc-block" data-mask-soft>
@@ -258,23 +266,24 @@
       was achieved for one patient, not what is promised to you.</p>
   </div>
   <div class="gal">
-    <div class="flip" tabindex="0" role="button" aria-label="Alopecia areata — reveal the before and after photographs">
+    <div class="flip has-more" tabindex="0" role="button" aria-label="Hair fall and hair loss — reveal the before and after photographs">
       <div class="flip-in">
         <div class="face front">
           <span class="ring" aria-hidden="true"></span>
           <span class="corner" aria-hidden="true">&#8634;</span>
-          <h4>Alopecia areata</h4>
+          <h4>Hair fall &amp; hair loss</h4>
           <span class="site">Scalp</span>
           <span class="hint">Reveal result</span>
         </div>
         <div class="face back">
           <div class="ba">
-            <figure><img src="/assets/img/gb_hair.jpg" alt="Alopecia areata before treatment"><figcaption>Before</figcaption></figure>
-            <figure><img src="/assets/img/ga_hair.jpg" alt="Alopecia areata after treatment"><figcaption>After</figcaption></figure>
+            <figure><img src="/assets/img/hair1_b.jpg" alt="Alopecia areata before treatment"><figcaption>Before</figcaption></figure>
+            <figure><img src="/assets/img/hair1_a.jpg" alt="Alopecia areata after treatment"><figcaption>After</figcaption></figure>
           </div>
+          <button class="more-btn" type="button" data-gallery="hair">4 hair cases<span aria-hidden="true">&#8594;</span></button>
         </div>
       </div>
-      <div class="flip-cap"><b>Alopecia areata</b><span>Treated at Ridhan</span></div>
+      <div class="flip-cap"><b>Hair fall &amp; hair loss</b><span>Treated at Ridhan</span></div>
     </div>
     <div class="flip" tabindex="0" role="button" aria-label="Acne scarring — reveal the before and after photographs">
       <div class="flip-in">
@@ -424,31 +433,57 @@
   <div class="sec-head">
     <h2 data-words>What patients say</h2>
     <p class="note">Straight from the clinic's Google listing — the reviews people already read before
-      deciding to call. Read on 13 September 2026.</p>
+      deciding to call. <span id="revWhen">Read from the listing on 21 September 2026.</span></p>
   </div>
   <div class="rev-top">
     <span class="rev-score" id="gRating">4.9</span>
     <div><span class="stars" aria-hidden="true">★★★★★</span>
-      <p class="rev-meta">Across <span id="gCount">77</span> Google reviews</p></div>
+      <p class="rev-meta">Across <span id="gCount">87</span> Google reviews</p></div>
   </div>
-  <div class="rev-grid" id="gReviews" data-source="google-places">
-    <div class="rev"><span class="stars" aria-hidden="true">★★★★★</span>
-      <p class="body">Visited this clinic for a persistent scalp issue and I'm honestly impressed with
-        the approach. The consultation was detailed but not overwhelming, and the doctor explained
-        everything in simple terms. I liked that they focused on a step-by-step treatment plan rather
-        than suggesting too many things at once.</p>
-      <span class="who">Chithra Ravi · Google</span></div>
-    <div class="rev"><span class="stars" aria-hidden="true">★★★★★</span>
-      <p class="body">I consulted with sir for my 2 year old baby for infection. Sir's gentleness and
-        patience makes my child so comfortable. His clear explanation makes us more relief about the
-        infection…</p>
-      <span class="who">Priya · Google</span></div>
-    <div class="rev"><span class="stars" aria-hidden="true">★★★★★</span>
-      <p class="body">Clean clinic and good staff. Appointment was on time. Doctor is friendly and
-        explains everything in an easy way. Overall nice experience.</p>
-      <span class="who">S Jeyaraj · Google</span></div>
+  <div class="revring no-ring" id="revRing">
+    <button class="ring-nav prev" type="button" id="ringPrev" aria-controls="ringStage"
+      aria-label="Previous review">&#8249;</button>
+    <div class="ring-stage" id="ringStage" role="group" aria-roledescription="carousel"
+      aria-label="Patient reviews from Google" tabindex="0">
+      <article class="rev">
+        <p class="body">Dr Aravindan is very good and caring. He avoids unnecessary tests and does not make the patient panic. He explains everything clearly and treats the patient with great patience and kindness. We are very satisfied with his treatment and would highly recommend him.</p>
+        <span class="who">Kamakshi Lalasa K &middot; Google &middot; a week ago</span></article>
+      <article class="rev">
+        <p class="body">Visited this clinic for a persistent scalp issue and I’m honestly impressed with the approach. The consultation was detailed but not overwhelming, and the doctor explained everything in simple terms. I liked that they focused on a step-by-step treatment plan rather than suggesting too many things at once.</p>
+        <span class="who">Chithra Ravi &middot; Google &middot; 2 months ago</span></article>
+      <article class="rev">
+        <p class="body">Hi all. This’s Priya mother of Kochezhiyan.. I consulted with sir for my 2 years baby for infection... Sir’s gentleness and patience makes my child so comfortable... His clear explanation makes us more relief about the infection... Doctor is so kind and humble to parents also.. By recommending sir’s cream and oil ment my son getting better by using once... Thank you so much sir for ur friendly move over my son.</p>
+        <span class="who">Priya Oman &middot; Google &middot; 2 weeks ago</span></article>
+      <article class="rev">
+        <p class="body">I visited Ridhan Skin Clinic for scabies treatment and had a very good experience. The doctor was professional, caring, and explained the treatment clearly. My scabies was cured successfully after following the treatment. I’m happy with the results and would recommend Ridhan Skin Clinic to others.</p>
+        <span class="who">Lakshmie Narayana &middot; Google &middot; a month ago</span></article>
+      <article class="rev">
+        <p class="body">I had a good experience at this dermatology clinic. I went in for a fungal infection, and the doctor explained the issue and treatment clearly. The treatment worked well, and I’m happy with the improvement. The staff were also friendly and the overall experience was smooth. Would recommend this clinic.</p>
+        <span class="who">SelviRanjith &middot; Google &middot; a month ago</span></article>
+      <article class="rev">
+        <p class="body">The doctor was very patient and actually listened to my concerns instead of rushing through the consultation. What I appreciated most was the clear explanation of my condition and the treatment options — no unnecessary procedures were pushed, and everything felt transparent.</p>
+        <span class="who">dhana raj &middot; Google &middot; 4 months ago</span></article>
+      <article class="rev">
+        <p class="body">Clean clinic and good staff. Appointment was on time. Doctor is friendly and explains everything in an easy way. Overall nice experience.</p>
+        <span class="who">S Jeyaraj &middot; Google &middot; 2 months ago</span></article>
+      <article class="rev">
+        <p class="body">I had done BOTOX and PRP for my hair and face .. got exceptional results and I thank Dr. Aravindhan for the same..</p>
+        <span class="who">bhuvana eswari &middot; Google &middot; 3 weeks ago</span></article>
+      <article class="rev">
+        <p class="body">I underwent treatment for my scalp issue, and over the next few weeks I could genuinely see improvement. The follow-up guidance was also very practical and easy to stick to.</p>
+        <span class="who">parasu raman &middot; Google &middot; 4 months ago</span></article>
+      <article class="rev">
+        <p class="body">I had a wonderful experience at this clinic! The doctors here are highly professional, caring, and take the time to explain everything clearly. They identify the root cause and correct medication.</p>
+        <span class="who">Sri Nivash &middot; Google &middot; a year ago</span></article>
+    </div>
+    <button class="ring-nav next" type="button" id="ringNext" aria-controls="ringStage"
+      aria-label="Next review">&#8250;</button>
   </div>
-  
+  <div class="ring-foot">
+    <div class="ring-dots" id="ringDots" role="tablist" aria-label="Choose a review"></div>
+    <p class="ring-live" id="ringLive" aria-live="polite"></p>
+  </div>
+
 </div></section>
 
 <section id="find"><div class="wrap">
@@ -544,6 +579,32 @@
       It is not a diagnosis. Individual results vary. In an emergency, contact your nearest hospital.</span></div>
 </div></footer>
 </main>
+
+<div id="callpop" role="dialog" aria-modal="false" aria-label="Clinic phone number" hidden>
+  <p class="cp-lbl">Ridhan clinic</p>
+  <p class="cp-num"><a href="tel:+916374496729">063744 96729</a></p>
+  <div class="cp-row">
+    <button class="cp-copy" type="button">Copy number</button>
+    <a class="cp-wa" href="https://wa.me/916374496729" target="_blank" rel="noopener">WhatsApp</a>
+  </div>
+  <button class="cp-x" type="button" aria-label="Close">&#215;</button>
+</div>
+
+<div id="hairgal" role="dialog" aria-modal="true" aria-label="Hair cases treated at Ridhan" hidden>
+  <div class="hg-scrim" data-close></div>
+  <div class="hg-box" tabindex="-1">
+    <header class="hg-head">
+      <div><b>Hair cases at Ridhan</b><span class="hg-count"></span></div>
+      <button class="hg-x" type="button" data-close aria-label="Close gallery">&#215;</button>
+    </header>
+    <div class="hg-track" tabindex="0" aria-live="polite"></div>
+    <button class="hg-nav prev" type="button" aria-label="Previous case">&#8249;</button>
+    <button class="hg-nav next" type="button" aria-label="Next case">&#8250;</button>
+    <div class="hg-dots" role="tablist" aria-label="Choose a case"></div>
+    <p class="hg-foot">Shared with the patient's consent. Identifying features have been obscured.
+      Results differ from person to person.</p>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
